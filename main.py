@@ -4,7 +4,7 @@ from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
-
+from pages.urban_routes_page import UrbanRoutesPage
 
 # no modificar
 def retrieve_phone_code(driver) -> str:
@@ -34,24 +34,7 @@ def retrieve_phone_code(driver) -> str:
         return code
 
 
-class UrbanRoutesPage:
-    from_field = (By.ID, 'from')
-    to_field = (By.ID, 'to')
 
-    def __init__(self, driver):
-        self.driver = driver
-
-    def set_from(self, from_address):
-        self.driver.find_element(*self.from_field).send_keys(from_address)
-
-    def set_to(self, to_address):
-        self.driver.find_element(*self.to_field).send_keys(to_address)
-
-    def get_from(self):
-        return self.driver.find_element(*self.from_field).get_property('value')
-
-    def get_to(self):
-        return self.driver.find_element(*self.to_field).get_property('value')
 
 
 
@@ -75,6 +58,40 @@ class TestUrbanRoutes:
         routes_page.set_route(address_from, address_to)
         assert routes_page.get_from() == address_from
         assert routes_page.get_to() == address_to
+
+        def test_full_taxi_order_flow(self):
+            self.driver.get(data.urban_routes_url)
+            routes_page = UrbanRoutesPage(self.driver)
+
+            # 1. Configurar dirección
+            routes_page.set_route(data.address_from, data.address_to)
+
+            # 2. Seleccionar tarifa Comfort
+            routes_page.select_comfort_tariff()
+
+            # 3. Rellenar número de teléfono
+            routes_page.fill_phone_number(data.phone_number)
+            code = retrieve_phone_code(self.driver)
+            routes_page.enter_sms_code(code)
+
+            # 4. Agregar tarjeta
+            routes_page.add_credit_card(data.card_number, data.card_code)
+
+            # 5. Escribir mensaje al conductor
+            routes_page.set_comment(data.message_for_driver)
+
+            # 6. Pedir manta y pañuelos
+            routes_page.toggle_blanket_and_handkerchiefs()
+
+            # 7. Pedir 2 helados
+            routes_page.add_ice_creams(2)
+            assert routes_page.get_ice_cream_count() == "2"
+
+            # 8. Aparece el modal para buscar taxi
+            routes_page.click_order_taxi()
+
+            # 9. Opcional: Información del conductor
+            assert routes_page.wait_for_driver_info().is_displayed()
 
 
     @classmethod
